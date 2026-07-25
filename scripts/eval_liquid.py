@@ -142,7 +142,7 @@ class LFM25VL:
 
 def load_docvqa(split: str = "validation", limit: int | None = None):
     print(f"Loading DocVQA {split} split from HuggingFace ...")
-    dataset = load_dataset("lmms-lab/DocVQA", split=split, trust_remote_code=True)
+    dataset = load_dataset("lmms-lab/DocVQA", "DocVQA", split=split, trust_remote_code=True)
     if limit:
         dataset = dataset.select(range(min(limit, len(dataset))))
 
