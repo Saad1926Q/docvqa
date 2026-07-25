@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/docvqa"]
+
+[project]
+name = "docvqa"
+version = "0.1.0"
+description = "Fine-tune a compact VLM on DocVQA - ablations, evaluation, failure taxonomy"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "torch",
+    "transformers",
+    "datasets",
+    "peft",
+    "bitsandbytes",
+    "trl",
+    "accelerate",
+    "pyyaml",
+    "pandas",
+    "matplotlib",
+    "tqdm",
+    "wandb",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+    "pytest>=8",
+    "ty>=0.0.63",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "ARG"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ty]
+python-version = "3.13"
+enabled = true
