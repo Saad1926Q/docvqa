@@ -24,6 +24,7 @@ dependencies = [
     "matplotlib",
     "tqdm",
     "wandb",
+    "torchvision>=0.26.0",
 ]
 
 [[tool.uv.index]]
