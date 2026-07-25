@@ -57,6 +57,5 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "ARG"]
 [tool.ruff.format]
 quote-style = "double"
 
-[tool.ty]
+[tool.ty.environment]
 python-version = "3.13"
-enabled = true
