@@ -115,6 +115,8 @@ class LFM25VL:
             for conversation in conversations
         ]
 
+        # Convert all images to RGB to handle mixed grayscale/RGB inputs
+        images = [img.convert("RGB") if hasattr(img, "convert") else img for img in images]
         batched_images = [[img] for img in images]
         inputs = self.processor(
             images=batched_images,
