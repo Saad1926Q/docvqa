@@ -237,7 +237,9 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
 
     totals = {"anls": 0.0, "em": 0.0, "f1": 0.0}
     count = 0
-    progress = tqdm(total=args.limit, desc="SlideVQA")
+    split_size = dataset.info.splits[args.split].num_examples
+    progress_total = split_size if args.limit is None else min(args.limit, split_size)
+    progress = tqdm(total=progress_total, desc="SlideVQA")
 
     with predictions_path.open("w") as predictions_file:
         for samples in batched(dataset, args.batch_size, args.limit):
