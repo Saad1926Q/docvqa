@@ -2,14 +2,14 @@
 Standalone baseline evaluation for Liquid LFM2.5-VL-1.6B on DocVQA.
 
 Usage:
-    uv run python scripts/eval_liquid.py \
+    uv run python scripts/eval_docvqa.py \
         --model LiquidAI/LFM2.5-VL-1.6B \
         --split validation \
         --batch_size 8 \
         --limit 100
 
     # Full eval
-    uv run python scripts/eval_liquid.py --batch_size 8
+    uv run python scripts/eval_docvqa.py --batch_size 8
 """
 
 import argparse
