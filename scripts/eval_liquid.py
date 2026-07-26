@@ -115,8 +115,9 @@ class LFM25VL:
             for conversation in conversations
         ]
 
+        batched_images = [[img] for img in images]
         inputs = self.processor(
-            images=images,
+            images=batched_images,
             text=chat_inputs,
             padding=True,
             return_tensors="pt",
