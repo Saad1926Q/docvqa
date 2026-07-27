@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from peft import PeftModel
 from PIL import Image
 from tqdm import tqdm
 from transformers import AutoModelForImageTextToText, AutoProcessor
@@ -104,7 +105,7 @@ def score_prediction(answer: Any, prediction: str) -> dict[str, float]:
 class LFM25VL:
     """Minimal batched multi-image inference wrapper for LFM2.5-VL."""
 
-    def __init__(self, model_id: str, max_new_tokens: int) -> None:
+    def __init__(self, model_id: str, max_new_tokens: int, adapter: str | None = None) -> None:
         self.device = torch.device("cuda")
         self.max_new_tokens = max_new_tokens
 
@@ -123,6 +124,9 @@ class LFM25VL:
             trust_remote_code=True,
         )
         self.model = model.to(self.device).eval()
+        if adapter is not None:
+            print(f"Loading LoRA adapter from {adapter} ...")
+            self.model = PeftModel.from_pretrained(self.model, adapter).eval()
         print(f"Model loaded on {self.device}")
 
     @torch.inference_mode()
@@ -196,12 +200,15 @@ def batched(iterable, batch_size: int, limit: int | None):
 def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     """Run SlideVQA inference and save aggregate and per-sample results."""
     dataset = load_slidevqa(args.split, streaming=True)
-    model = LFM25VL(args.model, args.max_new_tokens)
+    model = LFM25VL(args.model, args.max_new_tokens, adapter=args.adapter)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     mode = "evidence-pages-only" if args.evidence_pages_only else "all"
-    predictions_path = output_dir / f"lfm2.5-vl_slidevqa-{args.split}-{mode}_predictions.jsonl"
+    adapter_suffix = "-adapter" if args.adapter else ""
+    predictions_path = (
+        output_dir / f"lfm2.5-vl_slidevqa-{args.split}-{mode}{adapter_suffix}_predictions.jsonl"
+    )
 
     totals = {"anls": 0.0, "em": 0.0, "f1": 0.0}
     count = 0
@@ -261,13 +268,16 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "dataset": DATASET_ID,
         "split": args.split,
         "batch_size": args.batch_size,
+        "adapter": args.adapter,
         "num_samples": count,
         "mode": mode,
         "max_concat": args.max_concat,
         "column_num": args.column_num,
         **{metric: total / count for metric, total in totals.items()},
     }
-    results_path = output_dir / f"lfm2.5-vl_slidevqa-{args.split}-{mode}_results.json"
+    results_path = (
+        output_dir / f"lfm2.5-vl_slidevqa-{args.split}-{mode}{adapter_suffix}_results.json"
+    )
     with results_path.open("w") as results_file:
         json.dump(results, results_file, indent=2)
 
@@ -289,6 +299,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_concat", type=int, default=5)
     parser.add_argument("--column_num", type=int, default=2)
     parser.add_argument("--output_dir", default="results")
+    parser.add_argument("--adapter", default=None, help="Optional LoRA adapter path")
     parser.add_argument(
         "--evidence_pages_only",
         action="store_true",
