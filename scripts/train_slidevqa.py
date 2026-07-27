@@ -10,6 +10,11 @@ Usage:
     uv run python scripts/train_slidevqa.py --num_train_epochs 1
 """
 
+# ruff: noqa: I001
+
+from unsloth import FastVisionModel, is_bfloat16_supported
+from unsloth.trainer import UnslothVisionDataCollator
+
 import argparse
 from itertools import islice
 from typing import Any, cast
@@ -27,6 +32,7 @@ from docvqa.slidevqa import (
     grid_label,
     group_page_numbers,
 )
+from trl import SFTConfig, SFTTrainer
 
 
 def selection_instruction(question: str) -> str:
@@ -135,10 +141,6 @@ def build_dataset(args: argparse.Namespace) -> SlideVQASFTDataset:
 
 
 def train(args: argparse.Namespace) -> None:
-    from trl import SFTConfig, SFTTrainer
-    from unsloth import FastVisionModel, is_bfloat16_supported
-    from unsloth.trainer import UnslothVisionDataCollator
-
     dataset = build_dataset(args)
     model, tokenizer = FastVisionModel.from_pretrained(
         model_name=args.model,
