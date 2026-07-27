@@ -25,6 +25,7 @@ dependencies = [
     "tqdm",
     "wandb",
     "torchvision>=0.26.0",
+    "unsloth>=2026.3.11",
 ]
 
 [[tool.uv.index]]

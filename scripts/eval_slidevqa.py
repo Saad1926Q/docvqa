@@ -36,19 +36,37 @@ def load_slidevqa(split: str):
     return load_dataset(DATASET_ID, split=split, streaming=True, token=token)
 
 
-def get_slides(sample: dict[str, Any], *, evidence_pages_only: bool = False) -> list[Image.Image]:
-    """Collect slide images in deck order."""
+def get_page_numbers(sample: dict[str, Any], *, evidence_pages_only: bool = False) -> list[int]:
+    """Return available slide numbers in deck order."""
     page_numbers = (
         sample["evidence_pages"] if evidence_pages_only else range(1, len(PAGE_COLUMNS) + 1)
     )
-    slides = [
-        sample[f"page_{page_number}"].convert("RGB")
-        for page_number in page_numbers
-        if sample.get(f"page_{page_number}") is not None
-    ]
+    return [number for number in page_numbers if sample.get(f"page_{number}") is not None]
+
+
+def get_slides(sample: dict[str, Any], *, evidence_pages_only: bool = False) -> list[Image.Image]:
+    """Collect slide images in deck order."""
+    page_numbers = get_page_numbers(sample, evidence_pages_only=evidence_pages_only)
+    slides = [sample[f"page_{number}"].convert("RGB") for number in page_numbers]
     if not slides:
         raise ValueError(f"Slide deck {sample.get('deck_name')!r} has no images")
     return slides
+
+
+def group_page_numbers(page_numbers: list[int], max_concat: int) -> list[list[int]]:
+    """Group slide numbers exactly as concat_images groups slide images."""
+    interval = max(math.ceil(len(page_numbers) / max_concat), 1)
+    return [
+        page_numbers[start : start + interval] for start in range(0, len(page_numbers), interval)
+    ]
+
+
+def grid_label(page_numbers: list[int]) -> str:
+    """Describe which slides appear in a grid image."""
+    if len(page_numbers) == 1:
+        return f"Slide {page_numbers[0]}:"
+    pages = ", ".join(str(number) for number in page_numbers)
+    return f"Slides {pages}, arranged left-to-right then top-to-bottom:"
 
 
 def concat_images(
@@ -177,12 +195,24 @@ class LFM25VL:
 
     @torch.inference_mode()
     def generate_batch(
-        self, image_batches: list[list[Image.Image]], questions: list[str]
+        self,
+        image_batches: list[list[Image.Image]],
+        page_group_batches: list[list[list[int]]],
+        questions: list[str],
     ) -> list[str]:
         """Generate one answer per deck from all of its concatenated grid images."""
         conversations = []
-        for images, question in zip(image_batches, questions, strict=True):
-            content = [{"type": "image", "image": image} for image in images]
+        for images, page_groups, question in zip(
+            image_batches, page_group_batches, questions, strict=True
+        ):
+            content = []
+            for image, page_numbers in zip(images, page_groups, strict=True):
+                content.extend(
+                    [
+                        {"type": "text", "text": grid_label(page_numbers)},
+                        {"type": "image", "image": image},
+                    ]
+                )
             content.append({"type": "text", "text": build_prompt(question)})
             conversations.append([{"role": "user", "content": content}])
 
@@ -257,8 +287,15 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                 )
                 for sample in samples
             ]
+            page_group_batches = [
+                group_page_numbers(
+                    get_page_numbers(sample, evidence_pages_only=args.evidence_pages_only),
+                    args.max_concat,
+                )
+                for sample in samples
+            ]
             questions = [sample["question"] for sample in samples]
-            predictions = model.generate_batch(image_batches, questions)
+            predictions = model.generate_batch(image_batches, page_group_batches, questions)
 
             for sample, prediction, grids in zip(samples, predictions, image_batches, strict=True):
                 scores = score_prediction(sample["answer"], prediction)

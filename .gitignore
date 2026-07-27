@@ -7,3 +7,5 @@ checkpoints/
 *.safetensors
 *.bin
 outputs/
+unsloth_compiled_cache
+.ruff_cache
