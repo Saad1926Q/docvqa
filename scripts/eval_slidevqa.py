@@ -36,10 +36,15 @@ def load_slidevqa(split: str):
     return load_dataset(DATASET_ID, split=split, streaming=True, token=token)
 
 
-def get_slides(sample: dict[str, Any]) -> list[Image.Image]:
-    """Collect non-empty page_1 ... page_20 images in deck order."""
+def get_slides(sample: dict[str, Any], *, evidence_pages_only: bool = False) -> list[Image.Image]:
+    """Collect slide images in deck order."""
+    page_numbers = (
+        sample["evidence_pages"] if evidence_pages_only else range(1, len(PAGE_COLUMNS) + 1)
+    )
     slides = [
-        sample[column].convert("RGB") for column in PAGE_COLUMNS if sample[column] is not None
+        sample[f"page_{page_number}"].convert("RGB")
+        for page_number in page_numbers
+        if sample.get(f"page_{page_number}") is not None
     ]
     if not slides:
         raise ValueError(f"Slide deck {sample.get('deck_name')!r} has no images")
@@ -233,7 +238,8 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    predictions_path = output_dir / f"lfm2.5-vl_slidevqa-{args.split}_predictions.jsonl"
+    mode = "evidence-pages-only" if args.evidence_pages_only else "all"
+    predictions_path = output_dir / f"lfm2.5-vl_slidevqa-{args.split}-{mode}_predictions.jsonl"
 
     totals = {"anls": 0.0, "em": 0.0, "f1": 0.0}
     count = 0
@@ -245,7 +251,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         for samples in batched(dataset, args.batch_size, args.limit):
             image_batches = [
                 concat_images(
-                    get_slides(sample),
+                    get_slides(sample, evidence_pages_only=args.evidence_pages_only),
                     max_concat=args.max_concat,
                     column_num=args.column_num,
                 )
@@ -268,6 +274,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                     "prediction": prediction,
                     "arithmetic_expression": sample["arithmetic_expression"],
                     "evidence_pages": sample["evidence_pages"],
+                    "mode": mode,
                     "num_grids": len(grids),
                     **scores,
                 }
@@ -286,11 +293,12 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "split": args.split,
         "batch_size": args.batch_size,
         "num_samples": count,
+        "mode": mode,
         "max_concat": args.max_concat,
         "column_num": args.column_num,
         **{metric: total / count for metric, total in totals.items()},
     }
-    results_path = output_dir / f"lfm2.5-vl_slidevqa-{args.split}_results.json"
+    results_path = output_dir / f"lfm2.5-vl_slidevqa-{args.split}-{mode}_results.json"
     with results_path.open("w") as results_file:
         json.dump(results, results_file, indent=2)
 
@@ -312,6 +320,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_concat", type=int, default=5)
     parser.add_argument("--column_num", type=int, default=2)
     parser.add_argument("--output_dir", default="results")
+    parser.add_argument(
+        "--evidence_pages_only",
+        action="store_true",
+        help="Use only evidence_pages instead of all slides.",
+    )
     return parser.parse_args()
 
 
