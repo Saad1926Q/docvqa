@@ -1,8 +1,8 @@
-# DocVQA
+# SlideVQA
 
-Stack: **uv** (package mgmt), **hatchling** (build), **ruff** (lint + format), **ty** (type checker), **pytest** (tests), **VLMEvalKit** (eval).
+Stack: **uv** (package mgmt), **hatchling** (build), **ruff** (lint + format), **ty** (type checker), **pytest** (tests), **Unsloth** (SFT), **PEFT/LoRA**.
 
-Fine-tune a compact VLM on DocVQA. Run ablations (rank, LR, token budget, prompt templates, train size). Evaluate zero-shot vs fine-tuned. Manual failure taxonomy on 50+ examples.
+Fine-tune a compact VLM on SlideVQA. Run ablations (rank, LR, token budget, prompt templates, train size). Evaluate zero-shot vs fine-tuned. Manual failure taxonomy on 50+ examples.
 
 ## Commands
 
@@ -11,18 +11,18 @@ Fine-tune a compact VLM on DocVQA. Run ablations (rank, LR, token budget, prompt
 uv sync
 
 # Lint
-uv run ruff check src/
-uv run ruff check src/ --fix          # auto-fix
+uv run ruff check src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py
+uv run ruff check src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py --fix          # auto-fix
 
 # Format
-uv run ruff format src/
-uv run ruff format src/ --check       # check-only (CI)
+uv run ruff format src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py
+uv run ruff format src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py --check       # check-only (CI)
 
 # Type check
-uv run ty check src/
+uv run ty check src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py
 
 # All checks before commit
-uv run ruff check src/ --fix && uv run ruff format src/ && uv run ty check src/
+uv run ruff check src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py --fix && uv run ruff format src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py && uv run ty check src/ scripts/eval_slidevqa.py scripts/train_slidevqa.py
 
 # Tests
 uv run pytest tests/
