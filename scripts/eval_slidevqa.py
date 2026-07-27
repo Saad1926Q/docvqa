@@ -19,7 +19,7 @@ from PIL import Image
 from tqdm import tqdm
 from transformers import AutoModelForImageTextToText, AutoProcessor
 
-from docvqa.slidevqa import DATASET_ID, MODEL_ID, concat_images, get_slides, load_slidevqa
+from slidevqa import DATASET_ID, MODEL_ID, concat_images, get_slides, load_slidevqa
 
 
 def build_prompt(question: str) -> str:

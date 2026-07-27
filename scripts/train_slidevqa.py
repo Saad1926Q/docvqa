@@ -23,7 +23,7 @@ from datasets import load_dataset
 from huggingface_hub import get_token
 from PIL import Image
 
-from docvqa.slidevqa import (
+from slidevqa import (
     DATASET_ID,
     MODEL_ID,
     concat_images,
