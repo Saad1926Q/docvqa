@@ -182,7 +182,8 @@ def train(args: argparse.Namespace) -> None:
             seed=args.seed,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
-            report_to="none",
+            report_to="wandb" if args.wandb else "none",
+            run_name=args.run_name,
             remove_unused_columns=False,
             dataset_text_field="",
             dataset_kwargs={"skip_prepare_dataset": True},
@@ -224,6 +225,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--logging_steps", type=int, default=10)
     parser.add_argument("--save_steps", type=int, default=500)
     parser.add_argument("--seed", type=int, default=3407)
+    parser.add_argument("--wandb", action="store_true")
+    parser.add_argument("--run_name", default="lfm2.5-vl-slidevqa-sft")
     return parser.parse_args()
 
 
