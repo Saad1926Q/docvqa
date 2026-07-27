@@ -19,16 +19,7 @@ from PIL import Image
 from tqdm import tqdm
 from transformers import AutoModelForImageTextToText, AutoProcessor
 
-from docvqa.slidevqa import (
-    DATASET_ID,
-    MODEL_ID,
-    concat_images,
-    get_page_numbers,
-    get_slides,
-    grid_label,
-    group_page_numbers,
-    load_slidevqa,
-)
+from docvqa.slidevqa import DATASET_ID, MODEL_ID, concat_images, get_slides, load_slidevqa
 
 
 def build_prompt(question: str) -> str:
@@ -133,22 +124,12 @@ class LFM25VL:
     def generate_batch(
         self,
         image_batches: list[list[Image.Image]],
-        page_group_batches: list[list[list[int]]],
         questions: list[str],
     ) -> list[str]:
         """Generate one answer per deck from all of its concatenated grid images."""
         conversations = []
-        for images, page_groups, question in zip(
-            image_batches, page_group_batches, questions, strict=True
-        ):
-            content = []
-            for image, page_numbers in zip(images, page_groups, strict=True):
-                content.extend(
-                    [
-                        {"type": "text", "text": grid_label(page_numbers)},
-                        {"type": "image", "image": image},
-                    ]
-                )
+        for images, question in zip(image_batches, questions, strict=True):
+            content = [{"type": "image", "image": image} for image in images]
             content.append({"type": "text", "text": build_prompt(question)})
             conversations.append([{"role": "user", "content": content}])
 
@@ -226,15 +207,8 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                 )
                 for sample in samples
             ]
-            page_group_batches = [
-                group_page_numbers(
-                    get_page_numbers(sample, evidence_pages_only=args.evidence_pages_only),
-                    args.max_concat,
-                )
-                for sample in samples
-            ]
             questions = [sample["question"] for sample in samples]
-            predictions = model.generate_batch(image_batches, page_group_batches, questions)
+            predictions = model.generate_batch(image_batches, questions)
 
             for sample, prediction, grids in zip(samples, predictions, image_batches, strict=True):
                 scores = score_prediction(sample["answer"], prediction)
